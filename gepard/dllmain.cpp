@@ -265,13 +265,13 @@ void main_thread( )
 	//
 	// Main loop.
 	//
-    while ( ptr_file_mgr && ptr_get_data )
-    {
+	while ( ptr_file_mgr && ptr_get_data )
+	{
 		//
 		// 
 		//
-        if ( GetAsyncKeyState( VK_F1 ) & 1 )
-        {
+		if ( GetAsyncKeyState( VK_F1 ) & 1 )
+		{
 			//
 			// Get file manager.
 			//
@@ -363,13 +363,13 @@ void main_thread( )
 			// Notify user.
 			//
 			MessageBoxA( nullptr, "Process completed", "Information", MB_OK | MB_ICONINFORMATION );
-        }
+		}
 
-        //
+		//
 		// Avoid high CPU usage.
-        //
+		//
 		std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
-    }
+	}
 }
 
 BOOL APIENTRY DllMain( HMODULE module, DWORD reason, LPVOID reserved )
@@ -377,17 +377,17 @@ BOOL APIENTRY DllMain( HMODULE module, DWORD reason, LPVOID reserved )
 	//
 	// Check if this is a process attach.
 	//
-    if ( reason == DLL_PROCESS_ATTACH )
-    {
-        //
+	if ( reason == DLL_PROCESS_ATTACH )
+	{
+		//
 		// Get game module.
-        //
+		//
 		module_game = GetModuleHandle( nullptr );
 
-        //
+		//
 		// Get gepard module.
-        //
-        module_gepard = LoadLibrary( TEXT( "gepard.bin" ) );
+		//
+		module_gepard = LoadLibrary( TEXT( "gepard.bin" ) );
 
 		//
 		// Copy gepard variables.
@@ -399,11 +399,11 @@ BOOL APIENTRY DllMain( HMODULE module, DWORD reason, LPVOID reserved )
 			gepard_3 = *reinterpret_cast< int* >( GetProcAddress( module_gepard, reinterpret_cast< LPCSTR >( 3 ) ) );
 		}
 
-        //
+		//
 		// Initialize main thread.
-        //
+		//
 		CreateThread( nullptr, 0, reinterpret_cast< LPTHREAD_START_ROUTINE >( &main_thread ), nullptr, 0, nullptr );
-    }
+	}
 
-    return TRUE;
+	return TRUE;
 }
