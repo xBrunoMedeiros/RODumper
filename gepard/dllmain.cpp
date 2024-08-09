@@ -232,11 +232,6 @@ void main_thread( )
 	while ( !module_game ) Sleep( 100 );
 
 	//
-	// Wait for gepard module.
-	//
-	while ( !module_gepard ) Sleep( 100 );
-
-	//
 	//
 	//
 	char* ptr_file_mgr = nullptr;
