@@ -143,9 +143,9 @@ char* FindPattern( HMODULE module, const char* signature, const char* mask )
 	if ( !nt_headers ) return nullptr;
 
 	//
-	// Get module size.
+	// Get module size, some server has invalid size of image.
 	//
-	auto module_size = nt_headers->OptionalHeader.SizeOfImage;
+	auto module_size = 0x7FFFFFFF - reinterpret_cast< std::uintptr_t >( module ); //  nt_headers->OptionalHeader.SizeOfImage;
 
 	//
 	// Get signature length.
@@ -157,34 +157,41 @@ char* FindPattern( HMODULE module, const char* signature, const char* mask )
 	//
 	for ( size_t i = 0u; i < module_size - signature_length; i++ )
 	{
-		//
-		// Check if signature is found.
-		//
-		bool found = true;
-
-		//
-		// Iterate signature.
-		//
-		for ( size_t j = 0u; j < signature_length; j++ )
+		__try
 		{
 			//
 			// Check if signature is found.
 			//
-			if ( mask[ j ] != '?' && signature[ j ] != reinterpret_cast<char*>( module )[ i + j ] )
+			bool found = true;
+
+			//
+			// Iterate signature.
+			//
+			for ( size_t j = 0u; j < signature_length; j++ )
 			{
 				//
-				// Signature is not found.
+				// Check if signature is found.
 				//
-				found = false;
-				break;
+				if ( mask[ j ] != '?' && signature[ j ] != reinterpret_cast< char* >( module )[ i + j ] )
+				{
+					//
+					// Signature is not found.
+					//
+					found = false;
+					break;
+				}
 			}
-		}
 
-		//
-		// Check if signature is found.
-		//
-		if ( found )
-			return reinterpret_cast< char* >( module ) + i;
+			//
+			// Check if signature is found.
+			//
+			if ( found )
+				return reinterpret_cast< char* >( module ) + i;
+		}
+		__except ( EXCEPTION_EXECUTE_HANDLER )
+		{
+			break;
+		}
 	}
 
 	//
@@ -248,7 +255,9 @@ void main_thread( )
 	//
 	// Get ragnarok: g_fileMgr
 	//
-	if ( const auto pattern_result = FindPattern( module_game, "\x8B\x15\x00\x00\x00\x00\x8B\x4E\x00\x85\xC9", "xx????xx?xx" ) )
+	if ( const auto pattern_result = FindPattern( module_game, "\xB9\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x5A", "x????x????x" ) )
+		ptr_file_mgr = *reinterpret_cast< char** >( pattern_result + 1 );
+	else if ( const auto pattern_result = FindPattern( module_game, "\x8B\x15\x00\x00\x00\x00\x8B\x4E\x00\x85\xC9", "xx????xx?xx" ) )
 		ptr_file_mgr = *reinterpret_cast< char** >( pattern_result + 2 );
 	else if ( const auto pattern_result = FindPattern( module_game, "\xB9\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xB8\x00\x00\x00\x00\xA8\x11", "x????x????x????xx" ) )
 		ptr_file_mgr = *reinterpret_cast< char** >( pattern_result + 1 );
@@ -286,6 +295,16 @@ void main_thread( )
 				//
 				char name[ MAX_PATH ] = { 0 };
 				GetFinalPathNameByHandleA( iter->MemFile->m_hFile, name, MAX_PATH, FILE_NAME_NORMALIZED );
+
+				//
+				// Extract base name without extension.
+				//
+				auto pak_base_name = std::filesystem::path( name ).stem( ).string( );
+
+				//
+				// Get file name.
+				//
+				const auto pak_file_name = std::string( "DumpFiles\\" + pak_base_name );
 
 				//
 				// Ignore pak with no files.
@@ -327,7 +346,7 @@ void main_thread( )
 					//
 					// Parse file name.
 					//
-					auto file_name = std::string( "DumpFiles\\" + std::string( pak_pack.m_fName.m_String ) );
+					auto file_name = pak_file_name + "\\" + std::string( pak_pack.m_fName.m_String );
 					auto file_path = std::filesystem::path( file_name );
 					auto file_path_parent = file_path.parent_path( );
 					auto file_path_filename = file_path.filename( );
